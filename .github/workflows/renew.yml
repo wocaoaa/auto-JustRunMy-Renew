@@ -25,8 +25,9 @@ jobs:
       JUSTRUNMY_PASSWORD: ${{ secrets.JUSTRUNMY_PASSWORD }}
       TG_BOT_TOKEN: ${{ secrets.TG_BOT_TOKEN }}
       TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
-      HY2_PROXY_URL: ${{ secrets.HY2_PROXY_URL }}
-      SOCKS_PORT: ${{ secrets.SOCKS_PORT || '51080' }}
+      
+      # ========== 外部 SOCKS5 代理配置 ==========
+      GOST_PROXY_TARGET: ${{ secrets.SOCKS5_PROXY_URL }}
       
       # ========== 项目配置 ==========
       SCREENSHOT_DIR: screenshots
@@ -56,35 +57,19 @@ jobs:
           pip install --upgrade pip
           pip install seleniumbase aiohttp requests
 
-      # 步骤 5: 安装 Hysteria2（如果需要代理）
-      - name: 📡 安装 Hysteria2
-        run: |
-          if [ -n "${{ env.HY2_PROXY_URL }}" ]; then
-            echo "安装 Hysteria2..."
-            curl -L -o hysteria \
-              https://github.com/apernet/hysteria/releases/latest/download/hysteria-linux-amd64
-            chmod +x hysteria
-            sudo mv hysteria /usr/local/bin/hysteria
-            hysteria version
-            echo "✅ Hysteria2 安装完成"
-          else
-            echo "⚠️ 未配置代理，跳过 Hysteria2 安装"
-          fi
-
-      # 步骤 6: 执行脚本
+      # 步骤 5: 执行脚本
       - name: 🚀 运行续期脚本
         env:
           JUSTRUNMY_EMAIL: ${{ env.JUSTRUNMY_EMAIL }}
           JUSTRUNMY_PASSWORD: ${{ env.JUSTRUNMY_PASSWORD }}
           TG_BOT_TOKEN: ${{ env.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ env.TG_CHAT_ID }}
-          HY2_PROXY_URL: ${{ env.HY2_PROXY_URL }}
-          SOCKS_PORT: ${{ env.SOCKS_PORT }}
+          GOST_PROXY_TARGET: ${{ env.GOST_PROXY_TARGET }}
         run: |
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
             python justrunmy_renew.py
 
-      # 步骤 7: 上传截图
+      # 步骤 6: 上传截图
       - name: 📸 上传截图
         if: always()
         uses: actions/upload-artifact@v4
@@ -93,14 +78,14 @@ jobs:
           path: "*.png"
           retention-days: 7
 
-      # 步骤 8: 清理本地截图
+      # 步骤 7: 清理本地截图
       - name: 🧹 清理本地截图
         if: always()
         run: |
           rm -f *.png
           echo "✅ 本地截图已清理"
 
-      # 步骤 9: 提交执行时间到公开库
+      # 步骤 8: 提交执行时间到公开库
       - name: ⏱️ 提交执行时间
         if: always()
         run: |
@@ -118,7 +103,7 @@ jobs:
             echo "✅ 更改已推送"
           fi
 
-      # 步骤 10: 清理旧的工作流运行记录
+      # 步骤 9: 清理旧的工作流运行记录
       - name: 🧹 清理旧的工作流运行记录
         uses: Mattraks/delete-workflow-runs@v2
         with:
