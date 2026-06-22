@@ -27,7 +27,8 @@ jobs:
       TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
       
       # ========== 外部 SOCKS5 代理配置 ==========
-      GOST_PROXY_TARGET: ${{ secrets.SOCKS5_PROXY_URL }}
+      # 🌟 核心修复：这里的 Secret 名称已修改为对应你配置说明中的 GOST_PROXY_TARGET
+      GOST_PROXY_TARGET: ${{ secrets.GOST_PROXY_TARGET }}
       
       # ========== 项目配置 ==========
       SCREENSHOT_DIR: screenshots
