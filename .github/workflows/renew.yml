@@ -27,7 +27,6 @@ jobs:
       TG_CHAT_ID: ${{ secrets.TG_CHAT_ID }}
       
       # ========== 外部 SOCKS5 代理配置 ==========
-      # 🌟 核心修复：这里的 Secret 名称已修改为对应你配置说明中的 GOST_PROXY_TARGET
       GOST_PROXY_TARGET: ${{ secrets.GOST_PROXY_TARGET }}
       
       # ========== 项目配置 ==========
@@ -50,7 +49,25 @@ jobs:
       - name: 📦 安装系统依赖
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb xdotool scrot fonts-noto-cjk
+          sudo apt-get install -y xvfb xdotool scrot fonts-noto-cjk wget
+
+      # 🌟 核心新增步骤: 下载并启动 Gost 代理转发隧道
+      - name: 🔗 启动 Gost 代理客户端
+        run: |
+          echo "正在下载 Gost 客户端..."
+          # 下载官方 linux-amd64 二进制文件
+          wget -q https://github.com/ginuerzh/gost/releases/download/v2.11.5/gost-linux-amd64-2.11.5.gz
+          gunzip gost-linux-amd64-2.11.5.gz
+          mv gost-linux-amd64-2.11.5 gost
+          chmod +x gost
+          
+          echo "在后台启动代理隧道，将本地 127.0.0.1:8080 转发至目标代理..."
+          # 从环境变量获取你的远端代理（支持 socks5:// 或 http://），转成本地 http 代理
+          ./gost -L=http://127.0.0.1:8080 -F="${{ env.GOST_PROXY_TARGET }}" > /dev/null 2>&1 &
+          
+          # 稍等 2 秒让隧道建立
+          sleep 2
+          echo "✅ Gost 隧道已在后台运行"
 
       # 步骤 4: 安装 Python 依赖
       - name: 📚 安装 Python 依赖
@@ -58,17 +75,17 @@ jobs:
           pip install --upgrade pip
           pip install seleniumbase aiohttp requests
 
-      # 步骤 5: 执行脚本
+      # 步骤 5: 执行脚本 (🌟 核心修复：通过命令行无感注入代理参数)
       - name: 🚀 运行续期脚本
         env:
           JUSTRUNMY_EMAIL: ${{ env.JUSTRUNMY_EMAIL }}
           JUSTRUNMY_PASSWORD: ${{ env.JUSTRUNMY_PASSWORD }}
           TG_BOT_TOKEN: ${{ env.TG_BOT_TOKEN }}
           TG_CHAT_ID: ${{ env.TG_CHAT_ID }}
-          GOST_PROXY_TARGET: ${{ env.GOST_PROXY_TARGET }}
         run: |
+          # 关键点：直接追加 --proxy 参数，SeleniumBase 底层会自动无缝接管，完全不需要动 .py 代码！
           xvfb-run --auto-servernum --server-args="-screen 0 1920x1080x24" \
-            python justrunmy_renew.py
+            python justrunmy_renew.py --proxy=http://127.0.0.1:8080
 
       # 步骤 6: 上传截图
       - name: 📸 上传截图
